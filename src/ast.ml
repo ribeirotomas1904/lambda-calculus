@@ -1,22 +1,33 @@
 module Env = Map.Make (String)
 module StringSet = Set.Make (String)
 
-type binary_operator = Addition | Multiplication | Subtraction | Division
+type binary_operator =
+  | Addition
+  | Multiplication
+  | Subtraction
+  | Division
+  | Logical_and
+  | Logical_or
+
+type unary_operator = Logical_not
 
 type expression =
   | Variable of string
   | Abstraction of { parameter : string; body : expression }
   | Application of { function' : expression; argument : expression }
   | E_int of int
+  | E_bool of bool
   | Binary_operation of {
       operator : binary_operator;
       left : expression;
       right : expression;
     }
+  | Unary_operation of { operator : unary_operator; operand : expression }
 
 type value =
   | Closure of { env : value Env.t; parameter : string; body : expression }
   | V_int of int
+  | V_bool of bool
 
 exception Unbounded_variable of string
 
@@ -39,12 +50,15 @@ let rec get_unbounded_variable bounded_variables expression =
       | Some _ -> unbounded_variable
       | None -> get_unbounded_variable bounded_variables argument)
   | E_int _ -> None
+  | E_bool _ -> None
   | Binary_operation { left; right; _ } -> (
       (* TODO: refactor *)
       let unbounded_variable = get_unbounded_variable bounded_variables left in
       match unbounded_variable with
       | Some _ -> unbounded_variable
       | None -> get_unbounded_variable bounded_variables right)
+  | Unary_operation { operand; _ } ->
+      get_unbounded_variable bounded_variables operand
 
 (* TODO: should this be tail recursive? *)
 let rec eval env expression =
@@ -74,26 +88,60 @@ let rec eval env expression =
           (* TODO: improve error message for applying a value that is not a closure *)
           failwith "TODO")
   | E_int i -> V_int i
+  | E_bool b -> V_bool b
   | Binary_operation { operator; left; right } -> (
       (* TODO: refactor for code reuse and better error messages *)
-      let left_value = eval env left in
-      let right_value = eval env right in
       match operator with
       | Addition -> (
+          let left_value = eval env left in
+          let right_value = eval env right in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_int (x + y)
           | _ -> failwith "TODO")
       | Multiplication -> (
+          let left_value = eval env left in
+          let right_value = eval env right in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_int (x * y)
           | _ -> failwith "TODO")
       | Subtraction -> (
+          let left_value = eval env left in
+          let right_value = eval env right in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_int (x - y)
           | _ -> failwith "TODO")
       | Division -> (
+          let left_value = eval env left in
+          let right_value = eval env right in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_int (x / y)
+          | _ -> failwith "TODO")
+      | Logical_and -> (
+          let left_value = eval env left in
+          match left_value with
+          | V_bool true -> (
+              let right_value = eval env right in
+              match right_value with
+              | V_bool _ -> right_value
+              | _ -> failwith "TODO")
+          | V_bool false -> V_bool false
+          | _ -> failwith "TODO")
+      | Logical_or -> (
+          let left_value = eval env left in
+          match left_value with
+          | V_bool true -> V_bool true
+          | V_bool false -> (
+              let right_value = eval env right in
+              match right_value with
+              | V_bool _ -> right_value
+              | _ -> failwith "TODO")
+          | _ -> failwith "TODO"))
+  | Unary_operation { operator; operand } -> (
+      let operand_value = eval env operand in
+      match operator with
+      | Logical_not -> (
+          match operand_value with
+          | V_bool b -> V_bool (not b)
           | _ -> failwith "TODO"))
 
 let x =
@@ -133,3 +181,41 @@ let apply_add_to_40_2 =
       function' = Application { function' = add; argument = E_int 40 };
       argument = E_int 2;
     }
+
+let xor =
+  Abstraction
+    {
+      parameter = "a";
+      body =
+        Abstraction
+          {
+            parameter = "b";
+            body =
+              Binary_operation
+                {
+                  operator = Logical_or;
+                  left =
+                    Binary_operation
+                      {
+                        operator = Logical_and;
+                        left = Variable "a";
+                        right =
+                          Unary_operation
+                            { operator = Logical_not; operand = Variable "b" };
+                      };
+                  right =
+                    Binary_operation
+                      {
+                        operator = Logical_and;
+                        left =
+                          Unary_operation
+                            { operator = Logical_not; operand = Variable "a" };
+                        right = Variable "b";
+                      };
+                };
+          };
+    }
+
+let apply_xor a b =
+  Application
+    { function' = Application { function' = xor; argument = a }; argument = b }
