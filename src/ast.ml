@@ -1,7 +1,7 @@
 module Env = Map.Make (String)
 module StringSet = Set.Make (String)
 
-type binary_operator = Addition | Multiplication
+type binary_operator = Addition | Multiplication | Subtraction | Division
 
 type expression =
   | Variable of string
@@ -86,6 +86,14 @@ let rec eval env expression =
       | Multiplication -> (
           match (left_value, right_value) with
           | V_int x, V_int y -> V_int (x * y)
+          | _ -> failwith "TODO")
+      | Subtraction -> (
+          match (left_value, right_value) with
+          | V_int x, V_int y -> V_int (x - y)
+          | _ -> failwith "TODO")
+      | Division -> (
+          match (left_value, right_value) with
+          | V_int x, V_int y -> V_int (x / y)
           | _ -> failwith "TODO"))
 
 let x =
