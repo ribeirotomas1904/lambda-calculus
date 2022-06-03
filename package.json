@@ -1,0 +1,15 @@
+{
+  "esy": {
+    "build": "dune build -p lambda"
+  },
+  "dependencies": {
+    "ocaml": "4.14.x",
+    "@opam/dune": "*"
+  },
+  "devDependencies": {
+    "@opam/ocaml-lsp-server": "*",
+    "@opam/ocamlformat": "*",
+    "@opam/ocamlformat-rpc": "*",
+    "@opam/utop": "*"
+  }
+}

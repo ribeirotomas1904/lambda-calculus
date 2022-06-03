@@ -1,0 +1,10 @@
+(executable
+ (name test)
+ (modes byte))
+
+(rule
+ (alias runtest)
+ (deps
+  (:test ./test.bc))
+ (action
+  (run %{test})))
