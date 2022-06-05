@@ -15,6 +15,11 @@ type expression =
   | Variable of string
   | Abstraction of { parameter : string; body : expression }
   | Application of { function' : expression; argument : expression }
+  | If_then_else of {
+      predicate : expression;
+      then_branch : expression;
+      else_branch : expression;
+    }
   | E_int of int
   | E_bool of bool
   | E_unit
@@ -42,6 +47,11 @@ exception Unbounded_variable of string
 
 let raise_unbounded_variable variable = raise (Unbounded_variable variable)
 
+(* TODO: think in a better name *)
+(* TODO: test *)
+let some_or_else lazy_opt opt =
+  match opt with Some _ -> opt | None -> lazy_opt ()
+
 let rec get_unbounded_variable bounded_variables expression =
   match expression with
   | Variable identifier ->
@@ -50,23 +60,25 @@ let rec get_unbounded_variable bounded_variables expression =
   | Abstraction { parameter; body } ->
       let bounded_variables' = StringSet.add parameter bounded_variables in
       get_unbounded_variable bounded_variables' body
-  | Application { function'; argument } -> (
-      (* TODO: refactor *)
-      let unbounded_variable =
-        get_unbounded_variable bounded_variables function'
-      in
-      match unbounded_variable with
-      | Some _ -> unbounded_variable
-      | None -> get_unbounded_variable bounded_variables argument)
+  | Application { function'; argument } ->
+      (* TODO: test *)
+      get_unbounded_variable bounded_variables function'
+      |> some_or_else (fun () ->
+             get_unbounded_variable bounded_variables argument)
+  | If_then_else { predicate; then_branch; else_branch } ->
+      (* TODO: test *)
+      get_unbounded_variable bounded_variables predicate
+      |> some_or_else (fun () ->
+             get_unbounded_variable bounded_variables then_branch)
+      |> some_or_else (fun () ->
+             get_unbounded_variable bounded_variables else_branch)
   | E_int _ -> None
   | E_bool _ -> None
   | E_unit -> None
-  | Binary_operation { left; right; _ } -> (
-      (* TODO: refactor *)
-      let unbounded_variable = get_unbounded_variable bounded_variables left in
-      match unbounded_variable with
-      | Some _ -> unbounded_variable
-      | None -> get_unbounded_variable bounded_variables right)
+  | Binary_operation { left; right; _ } ->
+      (* TODO: test *)
+      get_unbounded_variable bounded_variables left
+      |> some_or_else (fun () -> get_unbounded_variable bounded_variables right)
   | Unary_operation { operand; _ } ->
       get_unbounded_variable bounded_variables operand
 
@@ -98,6 +110,12 @@ let rec eval env expression =
       | _ ->
           (* TODO: improve error message for applying a value that is not a closure *)
           failwith "TODO")
+  | If_then_else { predicate; then_branch; else_branch } -> (
+      let predicate_value = eval env predicate in
+      match predicate_value with
+      | V_bool true -> eval env then_branch
+      | V_bool false -> eval env else_branch
+      | _ -> failwith "TODO")
   | E_int i -> V_int i
   | E_bool b -> V_bool b
   | E_unit -> V_unit
