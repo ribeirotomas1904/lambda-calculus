@@ -17,6 +17,7 @@ type expression =
   | Application of { function' : expression; argument : expression }
   | E_int of int
   | E_bool of bool
+  | E_unit
   | Binary_operation of {
       operator : binary_operator;
       left : expression;
@@ -26,8 +27,16 @@ type expression =
 
 type value =
   | Closure of { env : value Env.t; parameter : string; body : expression }
+  | Primitive_function of (value -> value)
   | V_int of int
   | V_bool of bool
+  | V_unit
+
+let string_of_value = function
+  | V_int i -> string_of_int i
+  | V_bool b -> string_of_bool b
+  | V_unit -> "()"
+  | Closure _ | Primitive_function _ -> "<fun>"
 
 exception Unbounded_variable of string
 
@@ -51,6 +60,7 @@ let rec get_unbounded_variable bounded_variables expression =
       | None -> get_unbounded_variable bounded_variables argument)
   | E_int _ -> None
   | E_bool _ -> None
+  | E_unit -> None
   | Binary_operation { left; right; _ } -> (
       (* TODO: refactor *)
       let unbounded_variable = get_unbounded_variable bounded_variables left in
@@ -84,11 +94,13 @@ let rec eval env expression =
       | Closure { env; parameter; body } ->
           let env' = Env.add parameter argument_value env in
           eval env' body
+      | Primitive_function f -> f argument_value
       | _ ->
           (* TODO: improve error message for applying a value that is not a closure *)
           failwith "TODO")
   | E_int i -> V_int i
   | E_bool b -> V_bool b
+  | E_unit -> V_unit
   | Binary_operation { operator; left; right } -> (
       (* TODO: refactor for code reuse and better error messages *)
       match operator with
@@ -144,6 +156,35 @@ let rec eval env expression =
           | V_bool b -> V_bool (not b)
           | _ -> failwith "TODO"))
 
+let print =
+  Primitive_function
+    (fun value ->
+      string_of_value value |> print_endline;
+      V_unit)
+
+let primitive_function_with_multiple_arguments =
+  Primitive_function
+    (fun a ->
+      Primitive_function
+        (fun b ->
+          Primitive_function
+            (fun c ->
+              match (a, b, c) with
+              | V_int a, V_int b, V_unit ->
+                  eval
+                    (Env.empty |> Env.add "print" print)
+                    (Application
+                       {
+                         function' = Variable "print";
+                         argument = E_int (a + b);
+                       })
+              | _ -> failwith "TODO")))
+
+let env_with_primitive_functions =
+  Env.empty |> Env.add "print" print
+  |> Env.add "primitive_function_with_multiple_arguments"
+       primitive_function_with_multiple_arguments
+
 let x =
   Abstraction
     {
@@ -180,6 +221,27 @@ let apply_add_to_40_2 =
     {
       function' = Application { function' = add; argument = E_int 40 };
       argument = E_int 2;
+    }
+
+let print_42 =
+  Application { function' = Variable "print"; argument = apply_add_to_40_2 }
+
+let primitive_function_with_multiple_arguments =
+  Application
+    {
+      function' =
+        Application
+          {
+            function' =
+              Application
+                {
+                  function' =
+                    Variable "primitive_function_with_multiple_arguments";
+                  argument = E_int 40;
+                };
+            argument = E_int 2;
+          };
+      argument = E_unit;
     }
 
 let xor =
