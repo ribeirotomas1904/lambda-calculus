@@ -15,11 +15,6 @@ type expression =
   | Variable of string
   | Abstraction of { parameter : string; body : expression }
   | Application of { function' : expression; argument : expression }
-  | If_then_else of {
-      predicate : expression;
-      then_branch : expression;
-      else_branch : expression;
-    }
   | E_int of int
   | E_bool of bool
   | E_unit
@@ -29,6 +24,11 @@ type expression =
       right : expression;
     }
   | Unary_operation of { operator : unary_operator; operand : expression }
+  | If_then_else of {
+      predicate : expression;
+      then_branch : expression;
+      else_branch : expression;
+    }
 
 type value =
   | Closure of { env : value Env.t; parameter : string; body : expression }
@@ -65,13 +65,6 @@ let rec get_unbounded_variable bounded_variables expression =
       get_unbounded_variable bounded_variables function'
       |> some_or_else (fun () ->
              get_unbounded_variable bounded_variables argument)
-  | If_then_else { predicate; then_branch; else_branch } ->
-      (* TODO: test *)
-      get_unbounded_variable bounded_variables predicate
-      |> some_or_else (fun () ->
-             get_unbounded_variable bounded_variables then_branch)
-      |> some_or_else (fun () ->
-             get_unbounded_variable bounded_variables else_branch)
   | E_int _ -> None
   | E_bool _ -> None
   | E_unit -> None
@@ -81,6 +74,13 @@ let rec get_unbounded_variable bounded_variables expression =
       |> some_or_else (fun () -> get_unbounded_variable bounded_variables right)
   | Unary_operation { operand; _ } ->
       get_unbounded_variable bounded_variables operand
+  | If_then_else { predicate; then_branch; else_branch } ->
+      (* TODO: test *)
+      get_unbounded_variable bounded_variables predicate
+      |> some_or_else (fun () ->
+             get_unbounded_variable bounded_variables then_branch)
+      |> some_or_else (fun () ->
+             get_unbounded_variable bounded_variables else_branch)
 
 (* TODO: should this be tail recursive? *)
 let rec eval env expression =
@@ -110,12 +110,6 @@ let rec eval env expression =
       | _ ->
           (* TODO: improve error message for applying a value that is not a closure *)
           failwith "TODO")
-  | If_then_else { predicate; then_branch; else_branch } -> (
-      let predicate_value = eval env predicate in
-      match predicate_value with
-      | V_bool true -> eval env then_branch
-      | V_bool false -> eval env else_branch
-      | _ -> failwith "TODO")
   | E_int i -> V_int i
   | E_bool b -> V_bool b
   | E_unit -> V_unit
@@ -173,6 +167,12 @@ let rec eval env expression =
           match operand_value with
           | V_bool b -> V_bool (not b)
           | _ -> failwith "TODO"))
+  | If_then_else { predicate; then_branch; else_branch } -> (
+      let predicate_value = eval env predicate in
+      match predicate_value with
+      | V_bool true -> eval env then_branch
+      | V_bool false -> eval env else_branch
+      | _ -> failwith "TODO")
 
 let print =
   Primitive_function
