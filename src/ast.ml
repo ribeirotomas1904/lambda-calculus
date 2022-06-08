@@ -29,6 +29,11 @@ type expression =
       then_branch : expression;
       else_branch : expression;
     }
+  | Let_rec_in of {
+      variable_name : string;
+      recursive_function : expression;
+      in_branch : expression;
+    }
 
 type value =
   | Closure of { env : value Env.t; parameter : string; body : expression }
@@ -81,6 +86,50 @@ let rec get_unbounded_variable bounded_variables expression =
              get_unbounded_variable bounded_variables then_branch)
       |> some_or_else (fun () ->
              get_unbounded_variable bounded_variables else_branch)
+  | Let_rec_in { variable_name; recursive_function; in_branch } ->
+      let bounded_variables' = StringSet.add variable_name bounded_variables in
+      get_unbounded_variable bounded_variables recursive_function
+      |> some_or_else (fun () ->
+             get_unbounded_variable bounded_variables' in_branch)
+
+let z_combinator_part =
+  Abstraction
+    {
+      parameter = "x";
+      body =
+        Application
+          {
+            function' = Variable "f";
+            argument =
+              Abstraction
+                {
+                  parameter = "v";
+                  body =
+                    Application
+                      {
+                        function' =
+                          Application
+                            {
+                              function' = Variable "x";
+                              argument = Variable "x";
+                            };
+                        argument = Variable "v";
+                      };
+                };
+          };
+    }
+
+let z_combinator =
+  Abstraction
+    {
+      parameter = "f";
+      body =
+        Application
+          { function' = z_combinator_part; argument = z_combinator_part };
+    }
+
+let apply_z_combinator f =
+  Application { function' = z_combinator; argument = f }
 
 (* TODO: should this be tail recursive? *)
 let rec eval env expression =
@@ -172,6 +221,16 @@ let rec eval env expression =
       match predicate_value with
       | V_bool true -> eval env then_branch
       | V_bool false -> eval env else_branch
+      | _ -> failwith "TODO")
+  | Let_rec_in { variable_name; recursive_function; in_branch } -> (
+      match recursive_function with
+      | Abstraction _ ->
+          let recursive_function' =
+            Abstraction { parameter = variable_name; body = recursive_function }
+          in
+          let closure = apply_z_combinator recursive_function' |> eval env in
+          let env' = Env.add variable_name closure env in
+          eval env' in_branch
       | _ -> failwith "TODO")
 
 let print =
@@ -299,3 +358,40 @@ let xor =
 let apply_xor a b =
   Application
     { function' = Application { function' = xor; argument = a }; argument = b }
+
+(* let rec f = (fun x -> (fun _ -> f (x + 1)) (print x)) in f 0 *)
+let let_rec_in_test =
+  Let_rec_in
+    {
+      variable_name = "f";
+      recursive_function =
+        Abstraction
+          {
+            parameter = "x";
+            body =
+              Application
+                {
+                  function' =
+                    Abstraction
+                      {
+                        parameter = "_";
+                        body =
+                          Application
+                            {
+                              function' = Variable "f";
+                              argument =
+                                Binary_operation
+                                  {
+                                    operator = Addition;
+                                    left = Variable "x";
+                                    right = E_int 1;
+                                  };
+                            };
+                      };
+                  argument =
+                    Application
+                      { function' = Variable "print"; argument = Variable "x" };
+                };
+          };
+      in_branch = Application { function' = Variable "f"; argument = E_int 0 };
+    }
