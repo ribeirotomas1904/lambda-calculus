@@ -37,7 +37,7 @@ type expression =
 
 type value =
   | Closure of { env : value Env.t; parameter : string; body : expression }
-  | Primitive_function of (value -> value)
+  | Native_function of (value -> value)
   | V_int of int
   | V_bool of bool
   | V_unit
@@ -46,7 +46,7 @@ let string_of_value = function
   | V_int i -> string_of_int i
   | V_bool b -> string_of_bool b
   | V_unit -> "()"
-  | Closure _ | Primitive_function _ -> "<fun>"
+  | Closure _ | Native_function _ -> "<fun>"
 
 exception Unbounded_variable of string
 
@@ -155,7 +155,7 @@ let rec eval env expression =
       | Closure { env; parameter; body } ->
           let env' = Env.add parameter argument_value env in
           eval env' body
-      | Primitive_function f -> f argument_value
+      | Native_function f -> f argument_value
       | _ ->
           (* TODO: improve error message for applying a value that is not a closure *)
           failwith "TODO")
@@ -234,17 +234,17 @@ let rec eval env expression =
       | _ -> failwith "TODO")
 
 let print =
-  Primitive_function
+  Native_function
     (fun value ->
       string_of_value value |> print_endline;
       V_unit)
 
-let primitive_function_with_multiple_arguments =
-  Primitive_function
+let native_function_with_multiple_arguments =
+  Native_function
     (fun a ->
-      Primitive_function
+      Native_function
         (fun b ->
-          Primitive_function
+          Native_function
             (fun c ->
               match (a, b, c) with
               | V_int a, V_int b, V_unit ->
@@ -257,10 +257,10 @@ let primitive_function_with_multiple_arguments =
                        })
               | _ -> failwith "TODO")))
 
-let env_with_primitive_functions =
+let env_with_native_functions =
   Env.empty |> Env.add "print" print
-  |> Env.add "primitive_function_with_multiple_arguments"
-       primitive_function_with_multiple_arguments
+  |> Env.add "native_function_with_multiple_arguments"
+       native_function_with_multiple_arguments
 
 let x =
   Abstraction
@@ -303,7 +303,7 @@ let apply_add_to_40_2 =
 let print_42 =
   Application { function' = Variable "print"; argument = apply_add_to_40_2 }
 
-let primitive_function_with_multiple_arguments =
+let native_function_with_multiple_arguments =
   Application
     {
       function' =
@@ -312,8 +312,7 @@ let primitive_function_with_multiple_arguments =
             function' =
               Application
                 {
-                  function' =
-                    Variable "primitive_function_with_multiple_arguments";
+                  function' = Variable "native_function_with_multiple_arguments";
                   argument = E_int 40;
                 };
             argument = E_int 2;
