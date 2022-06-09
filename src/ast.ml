@@ -11,6 +11,7 @@ type binary_operator =
   | Structural_equality
   | Greater_than
   | Less_than
+  | Sequencing
 
 type unary_operator = Logical_not
 
@@ -229,6 +230,11 @@ let rec eval env expression =
           let right_value = eval env right in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_bool (x < y)
+          | _ -> failwith "TODO")
+      | Sequencing -> (
+          let left_value = eval env left in
+          match left_value with
+          | V_unit -> eval env right
           | _ -> failwith "TODO"))
   | Unary_operation { operator; operand } -> (
       let operand_value = eval env operand in
