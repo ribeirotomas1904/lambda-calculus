@@ -170,26 +170,26 @@ let rec eval env expression =
       (* TODO: refactor for code reuse and better error messages *)
       match operator with
       | Addition -> (
-          let left_value = eval env left in
           let right_value = eval env right in
+          let left_value = eval env left in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_int (x + y)
           | _ -> failwith "TODO")
       | Multiplication -> (
-          let left_value = eval env left in
           let right_value = eval env right in
+          let left_value = eval env left in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_int (x * y)
           | _ -> failwith "TODO")
       | Subtraction -> (
-          let left_value = eval env left in
           let right_value = eval env right in
+          let left_value = eval env left in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_int (x - y)
           | _ -> failwith "TODO")
       | Division -> (
-          let left_value = eval env left in
           let right_value = eval env right in
+          let left_value = eval env left in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_int (x / y)
           | _ -> failwith "TODO")
@@ -214,20 +214,20 @@ let rec eval env expression =
               | _ -> failwith "TODO")
           | _ -> failwith "TODO")
       | Structural_equality -> (
-          let left_value = eval env left in
           let right_value = eval env right in
+          let left_value = eval env left in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_bool (x = y)
           | _ -> failwith "TODO")
       | Greater_than -> (
-          let left_value = eval env left in
           let right_value = eval env right in
+          let left_value = eval env left in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_bool (x > y)
           | _ -> failwith "TODO")
       | Less_than -> (
-          let left_value = eval env left in
           let right_value = eval env right in
+          let left_value = eval env left in
           match (left_value, right_value) with
           | V_int x, V_int y -> V_bool (x < y)
           | _ -> failwith "TODO")
