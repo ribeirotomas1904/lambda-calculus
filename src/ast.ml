@@ -386,7 +386,7 @@ let apply_xor a b =
     { function' = Application { function' = xor; argument = a }; argument = b }
 
 (* why can this run forever? how is that evaluated? *)
-(* let rec f = (fun x -> (fun _ -> f (x + 1)) (print x)) in f 0 *)
+(* let rec f = fun x -> print x; f (x + 1) in f 0 *)
 let let_rec_in_test =
   Let_rec_in
     {
@@ -396,28 +396,24 @@ let let_rec_in_test =
           {
             parameter = "x";
             body =
-              Application
+              Binary_operation
                 {
-                  function' =
-                    Abstraction
-                      {
-                        parameter = "_";
-                        body =
-                          Application
-                            {
-                              function' = Variable "f";
-                              argument =
-                                Binary_operation
-                                  {
-                                    operator = Addition;
-                                    left = Variable "x";
-                                    right = E_int 1;
-                                  };
-                            };
-                      };
-                  argument =
+                  operator = Sequencing;
+                  left =
                     Application
                       { function' = Variable "print"; argument = Variable "x" };
+                  right =
+                    Application
+                      {
+                        function' = Variable "f";
+                        argument =
+                          Binary_operation
+                            {
+                              operator = Addition;
+                              left = Variable "x";
+                              right = E_int 1;
+                            };
+                      };
                 };
           };
       in_branch = Application { function' = Variable "f"; argument = E_int 0 };
