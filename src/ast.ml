@@ -8,6 +8,9 @@ type binary_operator =
   | Division
   | Logical_and
   | Logical_or
+  | Structural_equality
+  | Greater_than
+  | Less_than
 
 type unary_operator = Logical_not
 
@@ -208,6 +211,24 @@ let rec eval env expression =
               match right_value with
               | V_bool _ -> right_value
               | _ -> failwith "TODO")
+          | _ -> failwith "TODO")
+      | Structural_equality -> (
+          let left_value = eval env left in
+          let right_value = eval env right in
+          match (left_value, right_value) with
+          | V_int x, V_int y -> V_bool (x = y)
+          | _ -> failwith "TODO")
+      | Greater_than -> (
+          let left_value = eval env left in
+          let right_value = eval env right in
+          match (left_value, right_value) with
+          | V_int x, V_int y -> V_bool (x > y)
+          | _ -> failwith "TODO")
+      | Less_than -> (
+          let left_value = eval env left in
+          let right_value = eval env right in
+          match (left_value, right_value) with
+          | V_int x, V_int y -> V_bool (x < y)
           | _ -> failwith "TODO"))
   | Unary_operation { operator; operand } -> (
       let operand_value = eval env operand in
@@ -358,6 +379,7 @@ let apply_xor a b =
   Application
     { function' = Application { function' = xor; argument = a }; argument = b }
 
+(* why can this run forever? how is that evaluated? *)
 (* let rec f = (fun x -> (fun _ -> f (x + 1)) (print x)) in f 0 *)
 let let_rec_in_test =
   Let_rec_in
