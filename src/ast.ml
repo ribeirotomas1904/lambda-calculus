@@ -143,15 +143,7 @@ let rec eval env expression =
       match value_opt with
       | None -> raise_unbounded_variable identifier
       | Some value -> value)
-  | Abstraction { parameter; body } -> (
-      let bounded_variables =
-        Env.bindings env |> List.map fst |> StringSet.of_list
-        |> StringSet.add parameter
-      in
-      let unbounded_variable = get_unbounded_variable bounded_variables body in
-      match unbounded_variable with
-      | Some identifier -> raise_unbounded_variable identifier
-      | None -> Closure { env; parameter; body })
+  | Abstraction { parameter; body } -> Closure { env; parameter; body }
   | Application { function'; argument } -> (
       let argument_value = eval env argument in
       let function_value = eval env function' in
